@@ -1,4 +1,4 @@
-% estimate_cell_counts.m estimates cell counts from DNA methylation data
+% bayescce.m estimates cell counts from DNA methylation data
 % 
 % Input:
 % X - an m by n matrix of sites by samples methylation levels.
@@ -30,7 +30,7 @@
 % on on each of the t selected sites.
 % sites - the indices of the sites in X that were used in the optimization.
 
-function [R_est,M_est,beta_est,sites] = estimate_cell_counts(X,model_covars,refactor_covars,k_refactor,d,t,alpha,R_reference,reference_indices,sites)
+function [R_est,M_est,beta_est,sites] = bayescce(X,model_covars,refactor_covars,k_refactor,d,t,alpha,R_reference,reference_indices,sites)
 
 epsilon = 0.0001;   % the minimal value for R_{ih} (should be greater than zero for numerial stability).
 epsilon_sum = 0.05; % the sum of each sample's cell proportions will be in the range [1-epsilon_sum,1+epsilon_sum] if relax_sum == 1
