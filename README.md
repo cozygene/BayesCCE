@@ -11,7 +11,7 @@ A full documentation of the input and output arguments is provided in the main f
 For data preparation, it is advised to follow the recommendations for applying ReFACTor (<a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.3809.html" target="_blank">Rahmani et al.</a>): exclude sites with extremely low variability and exclude polymorphic and cross-reactive sites, as well as sites coming from the sex chromosomes.
 The full set of data preparation recommendations for ReFACTor can be found under "Tissue heterogeneity" in the documentation of the <a href="http://glint-epigenetics.readthedocs.io" target="_blank">GLINT toolset</a> for DNA methylation analysis.
 
-For estimating the Dirichler prior, it is advised to use the <a href="https://github.com/tminka/fastfit" target="_blank">Fastfit package</a> by <a href="https://tminka.github.io/papers/dirichlet/minka-dirichlet.pdf" target="_blank">Tom Minka</a>.
+For estimating the Dirichlet prior, it is advised to use the <a href="https://github.com/tminka/fastfit" target="_blank">Fastfit package</a> by <a href="https://tminka.github.io/papers/dirichlet/minka-dirichlet.pdf" target="_blank">Tom Minka</a>.
 
   
 ### Citing BayesCCE
