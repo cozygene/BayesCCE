@@ -1,7 +1,8 @@
 # BayesCCE
 
-Bayesian Cell Count Estimation (BayesCCE) is a semi-supervised method for estimating cell counts (cell type proportions) from array-probed DNA methylation data collected from heterogeneous source. BayesCCE does not require reference of methylation levels from sorted cell types, but rather a prior information on the distribution of the cell type proportions in the studied tissue. Such prior information can be obtained from cell counts that were previously collected from the studied tissue (no need for corresponding methylation levels or any other genomic information).
-Here, we provide a Matlab implementation of BayesCCE (implemented and tested using Matlab 2015b).
+Bayesian Cell Count Estimation (BayesCCE) is a semi-supervised method for estimating cell counts (cell type proportions) from array-probed DNA methylation data collected from heterogeneous source. BayesCCE does not require reference of methylation levels from sorted cell types, but rather an easier to obtain prior information on the distribution of the cell type proportions in the studied tissue. Such a prior information can be obtained from cell counts that were previously collected from the studied tissue (no need for corresponding methylation levels or any other genomic information). A further improvement in performance can be achieved if cell counts are provided even for a small subset of the samples in the data (BayesCCE impute).
+
+Here, we provide a Matlab implementation of the method (implemented and tested using Matlab 2015b).
 
 ## Usage
 
