@@ -1,41 +1,45 @@
-% bayescce.m estimates cell counts from DNA methylation data
+%%% bayescce.m
+%%% 
+%%% Summary: A function to estimate cell counts using DNA methylation data from heterogeneous tissue and a prior information on the cell type distribution in the studied tissue.
+%%% This is an implementation of the BayesCCE method (Bayesian Cell Count Estimation). The algorithm is described in Rahmani et al. 2017: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference.
+%%% Author: Elior Rahmani (elior.rahmani@gmail.com)
+%%% Date: 25th January 2017
+%%%
+%%% This function was implemented and tested using Matlab 2015b.
 % 
-% Input:
-% X - an m by n matrix of sites by samples methylation levels.
-% model_covars - an n by p matrix of p covariates for the n individuals.
-% refactor_covars - an n by p' matrix of p' covariates for the n
-% individuals (may be different than the model_covars). These covariates will be accounted for while calculating the ReFACTor components.
-% k_refactor - the  parameter k for the calculation of the
-% ReFACTor components (the number of assumed cell types).
-% d - the number of ReFACTor components to use.
-% t - the number of sites to use in the optimization (unless the parameter
-% "sites" is used, the top t sites selected by ReFACTor are considered)
-% alpha - parameters of the Dirichlet prior of the cell proportions.
-% Note that k=length(alpha) (i.e. the number of assumed cell types)
-% alpha = zeros(k,1) means than no prior knowledge on the cell proportions
-% R is given.
-% R_reference (optional) - an n0 by k matrix of cell proportions for n0 refernece
-% individuals.
-% reference_indices (optional) - an n0 by 1 vector of indices of the
-% reference samples in X.
-% sites (optional) - indices of sites to use in the optimization. If this
-% parameter is used then ReFACTor is not used for feature selection (and also t is ignored). 
+% INPUT:
+% (1) X - an m by n matrix of sites by samples methylation levels.
+% For data preparation, it is advised to follow the recommendations for applying ReFACTor (Rahmani et al., Nature Methods 2016): exclude sites with extremely low variability and exclude polymorphic and cross-reactive sites as well sites coming from the sex chromosomes.
+% The full set of recommendations for data preparations for ReFACTor can be found under "Tissue heterogeneity" at: glint-epigenetics.readthedocs.io
+% (2) model_covars - an n by p matrix of p covariates for the n individuals.
+% model_covars should include covariates that may have large effects on many methylation sites but are not expected to be correlated with the cell type composition (e.g., batch information).
+% (3) refactor_covars - an n by p' matrix of p' covariates for the n individuals. Note that p' may be different than p (the number of covariates in model_covars).
+% These covariates will be accounted for while calculating the ReFACTor components. Any covariate that is expected to have large effects on many methylation sites should be included, including covariates that may be correlated with the cell type composition (e.g., age and sex).
+% (4) k_refactor - the parameter k for the calculation of the ReFACTor components (the number of assumed cell types; for more information see the documentation of ReFACTor at: glint-epigenetics.readthedocs.io).
+% (5) d - the number of ReFACTor components to use (typically can be the same as k_refactor, however, when the cell type composition information spans over more PCs, increasing d is expected to improve the resutls).
+% (6) t - the number of sites to use in the optimization (the top t sites selected by ReFACTor are considered; for more information see the documentation of ReFACTor at: glint-epigenetics.readthedocs.io).
+% (7) alpha - a column vector with k values (the number of assumed cell types), each corresponding to one parameter of the Dirichlet prior on the cell proportions. 
 %
-% Output:
-% R_est - n by k matrix of cell proportion estimates. If R_reference is
-% given then R_est(reference_indices,:) == R_reference.
-% beta_est - t by k matrix of the estimated cell-type specific mean levels
-% in each of the t selected sites.
-% beta_est - t by p matrix of the estimated effects of the model covariates
-% on on each of the t selected sites.
-% sites - the indices of the sites in X that were used in the optimization.
+% BayesCCE impute (OPTIONAL; provide cell counts for some of the samples):
+% (8) R_reference (optional) - an n0 by k matrix of cell type proportions for n0 refernece individuals.
+% (9) reference_indices (optional) - an n0 by 1 vector with indices of the reference samples in X.
+%
+% OUTPUT:
+% (1) R_est - an n by k matrix of cell composition estimates. Each column is expected to correspond to one cell type.
+% Note that the i-th column is not guaranteed to correspond to the i-th cell type as indicated by alpha, unless BayesCCE impute is used (i.e. the R_reference and reference_indices are provided).
+% If BayesCCE impute is used then each estimated colum is also expected to match its corresponding cell type in scale (i.e. provide estimates in absolute values).
+% Note that if R_reference is given then R_est(reference_indices,:) contain R_reference.
+% (2) M_est - a t by k matrix of the estimated cell-type specific mean levels in each of the t selected sites.
+% (3) beta_est - t by p matrix of the estimated effects of the model covariates on on each of the t selected sites (empy if no covariates were provided).
+% (4) sites - the indices of the sites in X that were used in the optimization.
 
-function [R_est,M_est,beta_est,sites] = bayescce(X,model_covars,refactor_covars,k_refactor,d,t,alpha,R_reference,reference_indices,sites)
+function [R_est,M_est,beta_est,sites] = bayescce(X,model_covars,refactor_covars,k_refactor,d,t,alpha,R_reference,reference_indices)
 
-epsilon = 0.0001;   % the minimal value for R_{ih} (should be greater than zero for numerial stability).
-epsilon_sum = 0.05; % the sum of each sample's cell proportions will be in the range [1-epsilon_sum,1+epsilon_sum] if relax_sum == 1
-epsilon_ref = 0.01;    % allow error for the available cell counts; R_{ih} will be constrained to the range [R_{ih}*(1-epsilon_ref],R_{ih}*(1+epsilon_ref)].
+epsilon = 0.0001;   % the minimal value for R_{ih} (should be greater than zero to allow evaluation of the log(R_{ih}) values in the objective).
+epsilon_sum = 0.05; % the sum of each sample's cell proportions will be in the range [1-epsilon_sum,1+epsilon_sum].
+epsilon_ref = 0.01;    % cell counts (if R_reference is provided) may include measurement errors; R_{ih} will be constrained to the range [R_{ih}*(1-epsilon_ref],R_{ih}*(1+epsilon_ref)].
 
+% Settings for the optimization
 fmincon_options = optimset('fmincon');
 fmincon_options = optimset('GradObj','on','Display','iter','MaxIter',10000,'MaxFunEvals',30000);
 fmincon_options_given_M = optimset('GradObj','on','Display','iter','MaxIter',10000,'MaxFunEvals',30000);
@@ -47,27 +51,20 @@ else
     assert (size(R_reference,1) == length(reference_indices));
     non_reference_indices = setdiff(1:size(X,2),reference_indices);
 end
-if ~exist('sites','var')
-      sites = [];
-end
 
-if (length(sites) == 0)
-    X_adj = X;
-    if (~isempty(refactor_covars))
-        X_adj = adjust_data(X',refactor_covars)';
-    end
-    [~,ranked_list] = refactor(X_adj,k_refactor,t,k_refactor);
-    sites = ranked_list(1:t);
-    O = X(sites,:);
-else
-    O = X(sites,:);
-    t = length(sites);
+% Compute the ReFACTor components
+X_adj = X;
+if (~isempty(refactor_covars))
+    X_adj = adjust_data(X',refactor_covars)';
 end
+[~,ranked_list] = refactor(X_adj,k_refactor,t,k_refactor);
+sites = ranked_list(1:t);
+O = X(sites,:);
 
 % Set the dimensions of the problem
 m = t;
 n = size(O,2);
-n0 = length(reference_indices); % the number of samples for which we have cell counts
+n0 = length(reference_indices);
 n1 = n-n0;
 C = model_covars;
 p = size(C,2);
@@ -75,8 +72,7 @@ k = length(alpha);
 
 M_est = [];
 if (~isempty(R_reference))
-    % There are cell counts for a subset of the samples; estimate M, the
-    % cell type specific methylation mean of each site in O
+    % There are cell counts for a subset of the samples; estimate M, the cell type specific methylation mean of each site in O
     M_est = zeros(size(O,1),k);
     options_lsqlin = optimset('lsqlin');
     options_lsqlin = optimset(options_lsqlin,'Display','none');
@@ -88,7 +84,7 @@ if (~isempty(R_reference))
     end
 end
 
-% Compute the loadings and scores of the PCs of O (the ReFACTor components)
+% Compute the loadings and scores of the PCs of O (these are the ReFACTor components)
 [L,P] = pca(zscore(O'));
 L = [ones(m,1) L(:,1:(d))];
 P = [ones(n,1) P(:,1:(d))];
@@ -115,7 +111,7 @@ b_eq = [];
 
 if (isempty(M_est))
     
-    % no reference cell counts
+    % No reference cell counts were provided
     A_ineq = zeros(k*(n+2*m)+n*2,length(x0));
     b_ineq = zeros(k*(n+2*m)+n*2,1);    
     for h = 1:k
@@ -136,7 +132,7 @@ if (isempty(M_est))
 
 else
     
-    % There are cell counts for some of the samples; use M_est
+    % Cell counts were provided for some of the samples; use M_est
     
     A_ineq = zeros(n1*k+2*n+n0*2*k,length(x0));
     b_ineq = zeros(n1*k+2*n+n0*2*k,1);    
@@ -158,21 +154,19 @@ else
     
 end
 
-% estimate sigma^2
+% Estimate sigma^2 and calculate lambda
 sse = 0;
 for i = 1:m
     [~,~,res] = regress(O(i,:)',[P C]);
     sse = sse + sum(res.^2);
 end
 sigma2_hat = sse./(n*m);
-
-% Calculate lambda
 lambda = sigma2_hat * (gammaln(sum(alpha)) - sum(gammaln(alpha)));
 
 if (isempty(M_est))
     
     if (p ==0)
-        % no covaraites
+        % No covaraites were provided
         f = @(X) ecc_obj(O,L,P,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,lambda);
     else
         f = @(X) ecc_obj_covars(O,L,P,C,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,lambda);
@@ -182,7 +176,7 @@ if (isempty(M_est))
 else
     
     if (p ==0)
-        % no covariates were given
+        % No covaraites were provided
         f = @(X) ecc_obj_given_M(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,lambda);
     else
         f = @(X) ecc_obj_given_M_covars(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,lambda,model_covars);
@@ -198,20 +192,19 @@ if (isempty(M_est))
     B = reshape(x(2*k*d+1:end),d,p);
     R_est = [V'*P']';
     M_est = L*A;
-    if (~isempty(beta_est))
+    if (~isempty(B))
         beta_est = L*B;
     end
 else
     V = reshape(x(1:k*d),d,k);
     B = reshape(x(k*d+1:end),d,p);
-    R_est = [V'*P']';
+    R_est = V*P;
     % Use the known cell counts for the reference samples
     R_est(reference_indices,:) = R_reference;
-    if (~isempty(beta_est))
+    if (~isempty(B))
         beta_est = L*B;
     end
     
 end
-
     
 end

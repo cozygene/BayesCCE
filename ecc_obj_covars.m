@@ -9,6 +9,8 @@ p = size(C,2);
 
 Z = L*A*V'*P';
 Y = L*B*C';
+
+% Calculate the objective
 f = 0.5 * sum(sum(Z.^2 + Y.^2 - 2.*O.*Z - 2.*O.*Y + 2.*Z.*Y)) - lambda * sum(sum(log(V'*P').*(repmat(alpha-1,1,n))));
 
 % Calculate the gradient
@@ -29,7 +31,8 @@ for x = 1:d
         delta_B(x,y) = 0.5*sum(sum( 2.*W.*Y - 2.*O.*W +2.*W.*Z));
     end
 end
-% flatten the variable to get the gradient
+
+% Flatten the matrices to get the gradient
 g = [reshape(delta_A,d*k,1) ; reshape(delta_V,d*k,1); reshape(delta_B,d*p,1)];
     
 end
