@@ -154,22 +154,21 @@ else
     
 end
 
-% Estimate sigma^2 and calculate lambda
+% Estimate sigma^2
 sse = 0;
 for i = 1:m
     [~,~,res] = regress(O(i,:)',[P C]);
     sse = sse + sum(res.^2);
 end
 sigma2_hat = sse./(n*m);
-lambda = sigma2_hat * (gammaln(sum(alpha)) - sum(gammaln(alpha)));
 
 if (isempty(M_est))
     
     if (p ==0)
         % No covaraites were provided
-        f = @(X) ecc_obj(O,L,P,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,lambda);
+        f = @(X) ecc_obj(O,L,P,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,sigma2_hat);
     else
-        f = @(X) ecc_obj_covars(O,L,P,C,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,lambda);
+        f = @(X) ecc_obj_covars(O,L,P,C,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:2*k*d),d,k),reshape(X(2*k*d+1:end),d,p),alpha,sigma2_hat);
     end
     [x,fval,exitflag,output,lamb,grad] = fmincon(f,x0,A_ineq,b_ineq,A_eq,b_eq,[],[],[],fmincon_options);
     
@@ -177,9 +176,9 @@ else
     
     if (p ==0)
         % No covaraites were provided
-        f = @(X) ecc_obj_given_M(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,lambda);
+        f = @(X) ecc_obj_given_M(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,sigma2_hat);
     else
-        f = @(X) ecc_obj_given_M_covars(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,lambda,model_covars);
+        f = @(X) ecc_obj_given_M_covars(O,L,P,M_est,reshape(X(1:(k*d)),d,k),reshape(X(k*d+1:k*d+p*d),d,p),alpha,sigma2_hat,model_covars);
     end     
     [x,fval,exitflag,output,lamb,grad] = fmincon(f,x0,A_ineq,b_ineq,A_eq,b_eq,[],[],[],fmincon_options_given_M );
     
