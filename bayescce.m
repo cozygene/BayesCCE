@@ -197,7 +197,7 @@ if (isempty(M_est))
 else
     V = reshape(x(1:k*d),d,k);
     B = reshape(x(k*d+1:end),d,p);
-    R_est = V*P;
+    R_est = [V'*P']';
     % Use the known cell counts for the reference samples
     R_est(reference_indices,:) = R_reference;
     if (~isempty(B))
