@@ -1,9 +1,9 @@
 %%% bayescce.m
 %%% 
 %%% Summary: A function to estimate cell counts using DNA methylation data from heterogeneous tissue and a prior information on the cell type distribution in the studied tissue.
-%%% This is an implementation of the BayesCCE method (Bayesian Cell Count Estimation). The algorithm is described in Rahmani et al. 2017: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference.
+%%% This is an implementation of the BayesCCE method (Bayesian Cell Count Estimation). The algorithm is described in Rahmani et al. 2018: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference.
 %%% Author: Elior Rahmani (elior.rahmani@gmail.com)
-%%% Date: 25th January 2017
+%%% Date: 25th January 2017 (latest update: Feb 10th 2018)
 %%%
 %%% This function was implemented and tested using Matlab 2015b.
 % 
@@ -18,11 +18,14 @@
 % (4) k_refactor - the parameter k for the calculation of the ReFACTor components (the number of assumed cell types; for more information see the documentation of ReFACTor at: glint-epigenetics.readthedocs.io).
 % (5) d - the number of ReFACTor components to use (typically can be the same as k_refactor, however, when the cell type composition information spans over more PCs, increasing d is expected to improve the resutls).
 % (6) t - the number of sites to use in the optimization (the top t sites selected by ReFACTor are considered; for more information see the documentation of ReFACTor at: glint-epigenetics.readthedocs.io).
-% (7) alpha - a column vector with k values (the number of assumed cell types), each corresponding to one parameter of the Dirichlet prior on the cell proportions. 
+% (7) alpha - a column vector with k values (the number of assumed cell types), each corresponding to one parameter of the Dirichlet prior on the cell proportions. Note that k=length(alpha) (i.e. the number of assumed cell types)
+%       Alternatively, alpha can be a k times n matrix, in which case each individual gets their own prior (can be used, for example, for providing different priors to different populations in the sample such as cases and controls).
 %
 % BayesCCE impute (OPTIONAL; provide cell counts for some of the samples):
-% (8) R_reference (optional) - an n0 by k matrix of cell type proportions for n0 refernece individuals.
-% (9) reference_indices (optional) - an n0 by 1 vector with indices of the reference samples in X.
+% (8) R_reference (optional) - an n0 by k matrix of cell type proportions
+% for n0 refernece individuals. Provide an empty vector if does not apply (i.e. []).
+% (9) reference_indices (optional) - an n0 by 1 vector with indices of the
+% reference samples in X. Provide an empty vector if does not apply (i.e. []).
 %
 % OUTPUT:
 % (1) R_est - an n by k matrix of cell composition estimates. Each column is expected to correspond to one cell type.
@@ -41,8 +44,8 @@ epsilon_ref = 0.01;    % cell counts (if R_reference is provided) may include me
 
 % Settings for the optimization
 fmincon_options = optimset('fmincon');
-fmincon_options = optimset('GradObj','on','Display','iter','MaxIter',10000,'MaxFunEvals',30000);
-fmincon_options_given_M = optimset('GradObj','on','Display','iter','MaxIter',10000,'MaxFunEvals',30000);
+fmincon_options = optimset('GradObj','on','Display','iter','MaxIter',5000,'MaxFunEvals',30000);
+fmincon_options_given_M = optimset('GradObj','on','Display','iter','MaxIter',5000,'MaxFunEvals',30000);
 
 if ~exist('R_reference','var')
       R_reference = [];
@@ -61,6 +64,11 @@ end
 sites = ranked_list(1:t);
 O = X(sites,:);
 
+if (size(alpha,2) == 1)
+    alpha = repmat(alpha,1,size(O,2));
+end
+assert (size(alpha,2) == size(O,2));
+
 % Set the dimensions of the problem
 m = t;
 n = size(O,2);
@@ -68,7 +76,7 @@ n0 = length(reference_indices);
 n1 = n-n0;
 C = model_covars;
 p = size(C,2);
-k = length(alpha);
+k = size(alpha,1);
 
 M_est = [];
 if (~isempty(R_reference))
@@ -91,15 +99,15 @@ P = [ones(n,1) P(:,1:(d))];
 d = d + 1;
 
 % Set an initial point that is feasible under the constraints
+xx = [mean(alpha')/n]';
+s = xx'/sum(xx);
 if (isempty(M_est))
     x0 = zeros(2*d*k+d*p,1);
-    s = alpha ./ sum(alpha);
     for h = 1:k
         x0(d*k+1+(h-1)*d) = s(h);
     end
 else
    x0 = zeros(d*k+d*p,1);
-    s = alpha ./ sum(alpha);
     for h = 1:k
         x0(1+(h-1)*d) = s(h);
     end 
