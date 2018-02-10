@@ -20,7 +20,7 @@ For estimating the Dirichlet prior, it is advised to use the <a href="https://gi
 
 If you use BayesCCE in any published work, please cite the manuscript describing the method:
 
-Elior Rahmani, Regev Schweiger, Liat Shenhav, Eleazar Eskin, and Eran Halperin: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference, 2017, *accepted to RECOMB 2017*.
+Elior Rahmani, Regev Schweiger, Liat Shenhav, Eleazar Eskin, and Eran Halperin: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference, 2017, *RECOMB 2017*.
 
 ### Author
 
