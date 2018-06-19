@@ -22,6 +22,10 @@ If you use BayesCCE in any published work, please cite the manuscript describing
 
 Elior Rahmani, Regev Schweiger, Liat Shenhav, Eleazar Eskin, and Eran Halperin: A Bayesian Framework for Estimating Cell Type Composition from DNA Methylation Without the Need for Methylation Reference, *RECOMB 2017*.
 
+### License
+
+BayesCCE is available under the <a href="https://opensource.org/licenses/GPL-3.0" target="_blank">GPL-3 license</a>.
+
 ### Author
 
 This software was developed by Elior Rahmani. For any question and for reporting bugs please send an email to elior.rahmani@gmail.com
