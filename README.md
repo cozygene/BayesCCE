@@ -28,7 +28,7 @@ BayesCCE is available under the <a href="https://opensource.org/licenses/GPL-3.0
 
 ### Author
 
-This software was developed by Elior Rahmani. For any question and for reporting bugs please send an email to elior.rahmani@gmail.com
+This software was developed by Elior Rahmani.
 
 
 
